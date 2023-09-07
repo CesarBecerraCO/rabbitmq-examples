@@ -15,7 +15,7 @@ def main(bindingKey):
     channel.queue_bind(queue=qName, exchange=eName, routing_key=bindingKey)
     
     def msg_consumer(ch, method, properties, body):
-        print(f" [x] Received {body}")
+        print(f" [x] {method.routing_key}: {body}")
         channel.basic_ack(delivery_tag=method.delivery_tag)
     
     #channel.basic_qos(prefetch_count=1)
