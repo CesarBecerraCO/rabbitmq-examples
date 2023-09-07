@@ -7,7 +7,7 @@ def main():
     connection = pika.BlockingConnection(pika.URLParameters(os.getenv('MQ_URL')))
     channel = connection.channel()
     channel.exchange_declare(exchange=eName, exchange_type=eType)
-    channel.queue_declare(queue=qName)
+    #channel.queue_declare(queue=qName)
 
     i = 0
     while(True):

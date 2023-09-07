@@ -7,7 +7,9 @@ def main():
     connection = pika.BlockingConnection(pika.URLParameters(os.getenv('MQ_URL')))
     channel = connection.channel()
     channel.exchange_declare(exchange=eName, exchange_type=eType)
-    channel.queue_declare(queue=qName)
+    #channel.queue_declare(queue=qName)
+    result = channel.queue_declare('', exclusive=True)
+    qName = result.method.queue
     channel.queue_bind(queue=qName, exchange=eName, routing_key='')
     
     def msg_consumer(ch, method, properties, body):
