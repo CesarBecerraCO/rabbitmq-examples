@@ -3,21 +3,26 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def main():
-    qName= "hello"
-    #credentials = pika.PlainCredentials(username=os.getenv('MQ_USR'), password=os.getenv('MQ_USR'))
-    #parameters = pika.ConnectionParameters(host='localhost', port=5672, virtual_host='/', credentials=credentials)
     parameters = pika.URLParameters(os.getenv('MQ_URL'))
     connection = pika.BlockingConnection(parameters)
-    channel = connection.channel()
-    channel.queue_declare(queue=qName)
+    assert connection.is_open
 
-    def callback(ch, method, properties, body):
-        print(f" [x] Received {body}")
-    
-    channel.basic_consume(queue=qName, on_message_callback=callback, auto_ack=True)
+    queueName= "hello"
+    try:
+        channel = connection.channel()
+        assert channel.is_open
 
-    print(' [*] Waiting for messages. To exit press CTRL+C')
-    channel.start_consuming()
+        channel.queue_declare(queue=queueName)
+
+        def callback(ch, method, properties, body):
+            print(f" [x] Received {body}")
+        
+        channel.basic_consume(queue=queueName, on_message_callback=callback, auto_ack=True)
+
+        print(' [*] Waiting for messages. To exit press CTRL+C')
+        channel.start_consuming()
+    finally:
+        connection.close()
 
 if __name__ == '__main__':
     try:

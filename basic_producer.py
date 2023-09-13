@@ -3,13 +3,21 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-eName, rKey, qName, msg_body = "", "hello", "hello", "Hi Cesar!"
-connection = pika.BlockingConnection(pika.URLParameters(os.getenv('MQ_URL')))
+#credentials = pika.PlainCredentials(username=os.getenv('MQ_USR'), password=os.getenv('MQ_USR'))
+#parameters = pika.ConnectionParameters(host='localhost', port=5672, virtual_host='/', credentials=credentials)
+parameters = pika.URLParameters(os.getenv('MQ_URL'))
+connection = pika.BlockingConnection(parameters)
+assert connection.is_open
 
-channel = connection.channel()
-channel.queue_declare(queue=qName)
-channel.basic_publish(exchange=eName, routing_key=rKey, body=msg_body)
+exchangeName, routingKey, queueName = "", "hello", "hello"
+msgBody = "Hi Cesar!"
+try:
+    channel = connection.channel()
+    assert channel.is_open
 
-print(f" [x] Sent '{msg_body}'")
+    channel.queue_declare(queue=queueName)
+    channel.basic_publish(exchange=exchangeName, routing_key=routingKey, body=msgBody)
 
-connection.close()
+    print(f" [x] Sent '{msgBody}'")
+finally:
+    connection.close()
