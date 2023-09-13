@@ -3,21 +3,27 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def main():
-    eName, eType, qName = "eventos", "fanout", "qf"
-    connection = pika.BlockingConnection(pika.URLParameters(os.getenv('MQ_URL')))
-    channel = connection.channel()
-    channel.exchange_declare(exchange=eName, exchange_type=eType)
-    #channel.queue_declare(queue=qName)
+    parameters = pika.URLParameters(os.getenv('MQ_URL'))
+    connection = pika.BlockingConnection(parameters)
+    assert connection.is_open
 
-    i = 0
-    while(True):
-        msg_body=f"Evento {i}"
-        print(f" [x] Sent '{msg_body}'")
-        channel.basic_publish(exchange=eName, routing_key='', body=msg_body)
-        time.sleep(2)
-        i += 1
+    exchangeName, exchangeType, routingKey, queueName = "eventos", "fanout", "", "eventos"
+    try:
+        channel = connection.channel()
+        assert channel.is_open
 
-    connection.close()
+        channel.exchange_declare(exchange=exchangeName, exchange_type=exchangeType)
+        channel.queue_declare(queue=queueName)
+
+        i = 0
+        while(True):
+            msgBody=f"Evento {i}"
+            print(f" [x] Sent '{msgBody}'")
+            channel.basic_publish(exchange=exchangeName, routing_key=routingKey, body=msgBody)
+            time.sleep(2)
+            i += 1
+    finally:
+        connection.close()
 
 if __name__ == '__main__':
     try:
