@@ -3,25 +3,34 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def main():
-    eName, eType, qName = "activated_alarms", "topic", "qalarms"
-    connection = pika.BlockingConnection(pika.URLParameters(os.getenv('MQ_URL')))
-    channel = connection.channel()
-    channel.exchange_declare(exchange=eName, exchange_type=eType)
-    #channel.queue_declare(queue=qName)
+    parameters = pika.URLParameters(os.getenv('MQ_URL'))
+    connection = pika.BlockingConnection(parameters)
+    assert connection.is_open
 
-    i = 0
-    substations = ["BUG", "CAL", "TUL", "ZAR"]
-    protections = ["elec", "mec"]
-    status = ["yes", "no"]
-    while(True):
-        rKey = f"{random.choice(substations)}.{random.choice(protections)}.{random.choice(status)}"
-        msg_body=f"Msg {i} > Any activated '{rKey.split('.')[1]}' alarm in {rKey.split('.')[0]}: {rKey.split('.')[2]}"
-        print(f" [x] Sent '{rKey}'")
-        channel.basic_publish(exchange=eName, routing_key=rKey, body=msg_body)
-        time.sleep(2)
-        i += 1
+    exchangeName, exchangeType, routingKey, queueName = "activated_alarms", "topic", "", "activated_alarms"
+    try:
+        channel = connection.channel()
+        assert channel.is_open
 
-    connection.close()
+        channel.exchange_declare(exchange=exchangeName, exchange_type=exchangeType)
+        #channel.queue_declare(queue=queueName)
+
+        i = 0
+        substations = ["BUG", "CAL", "TUL", "ZAR"]
+        protections = ["elec", "mec"]
+        status = ["yes", "no"]
+        while(True):
+            routingKey = f"{random.choice(substations)}.{random.choice(protections)}.{random.choice(status)}"
+            msg_body=f"Msg {i} > Any activated '{routingKey.split('.')[1]}' alarm in {routingKey.split('.')[0]}: {routingKey.split('.')[2]}"
+            print(f" [x] Sent '{routingKey}'")
+            channel.basic_publish(exchange=exchangeName, routing_key=routingKey, body=msg_body)
+            time.sleep(2)
+            i += 1
+    finally:
+        connection.close()
+
+# python topic_consumer.py *.elec.*
+# python topic_consumer.py BUG.elec.*
 
 if __name__ == '__main__':
     try:
