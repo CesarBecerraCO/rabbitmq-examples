@@ -13,8 +13,8 @@ def main(bindingKey):
         assert channel.is_open
 
         channel.exchange_declare(exchange=exchangeName, exchange_type=eType)
-        #channel.queue_declare(queue=queueName)
-        result = channel.queue_declare('', exclusive=True)
+        #channel.queue_declare(queue=queueName, passive=False, durable=True) #Looks for messages in this queue, but...
+        result = channel.queue_declare('', exclusive=True, durable=True)
         queueName = result.method.queue
         channel.queue_bind(queue=queueName, exchange=exchangeName, routing_key=routingKey)
         

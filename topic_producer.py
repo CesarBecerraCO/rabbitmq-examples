@@ -13,7 +13,7 @@ def main():
         assert channel.is_open
 
         channel.exchange_declare(exchange=exchangeName, exchange_type=exchangeType)
-        #channel.queue_declare(queue=queueName)
+        #channel.queue_declare(queue=queueName, passive=False, durable=True) #Keeps messages in this queue, but... 
 
         i = 0
         substations = ["BUG", "CAL", "TUL", "ZAR"]
@@ -23,7 +23,11 @@ def main():
             routingKey = f"{random.choice(substations)}.{random.choice(protections)}.{random.choice(status)}"
             msg_body=f"Msg {i} > Any activated '{routingKey.split('.')[1]}' alarm in {routingKey.split('.')[0]}: {routingKey.split('.')[2]}"
             print(f" [x] Sent '{routingKey}'")
-            channel.basic_publish(exchange=exchangeName, routing_key=routingKey, body=msg_body)
+            channel.basic_publish(exchange=exchangeName,
+                                  routing_key=routingKey,
+                                  body=msg_body,
+                                  properties=pika.BasicProperties(delivery_mode=2) # make message persistent
+                                  )
             time.sleep(2)
             i += 1
     finally:
