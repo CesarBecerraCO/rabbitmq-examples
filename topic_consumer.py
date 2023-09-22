@@ -2,28 +2,21 @@ import pika, os, sys
 from dotenv import load_dotenv
 load_dotenv()
 
-def main(bindingKey):
+def main(queueName):
     parameters = pika.URLParameters(os.getenv('MQ_URL'))
     connection = pika.BlockingConnection(parameters)
     assert connection.is_open
 
-    exchangeName, eType, routingKey, queueName = "activated_alarms", "topic", bindingKey, "activated_alarms"
     try:
         channel = connection.channel()
         assert channel.is_open
-
-        channel.exchange_declare(exchange=exchangeName, exchange_type=eType)
-        #channel.queue_declare(queue=queueName, passive=False, durable=True) #Looks for messages in this queue, but...
-        result = channel.queue_declare('', exclusive=True, durable=True)
-        queueName = result.method.queue
-        channel.queue_bind(queue=queueName, exchange=exchangeName, routing_key=routingKey)
         
-        def msg_consumer(ch, method, properties, body):
+        def callback(ch, method, properties, body):
             print(f" [x] {method.routing_key}: {body}")
             channel.basic_ack(delivery_tag=method.delivery_tag)
         
         #channel.basic_qos(prefetch_count=1)
-        channel.basic_consume(queue=queueName, on_message_callback=msg_consumer)
+        channel.basic_consume(queue=queueName, on_message_callback=callback)
 
         print(' [*] Waiting for messages. To exit press CTRL+C')
         channel.start_consuming()
@@ -36,14 +29,18 @@ def myexit():
     except SystemExit:
         os._exit(0)
 
-
+"""
+python topic_consumer.py "alarms_elec_yes"
+python topic_consumer.py "alarms_calima"
+python topic_consumer.py "alarms_all"
+"""
 if __name__ == '__main__':
     try:
-        bindingKey = sys.argv[1:][0]
-        if not bindingKey:
-            print(f"Usage: {sys.argv[0]} bindingKey...\n")
+        if len(sys.argv) != 2:
+            print(f"Usage: {sys.argv[0]} queueName...\n")
             myexit()
-        main(bindingKey)
+        queueName = sys.argv[1:][0]            
+        main(queueName)
     except KeyboardInterrupt:
         print('Interrupted')
         myexit()
