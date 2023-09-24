@@ -2,7 +2,7 @@ import pika, os, sys, time, random
 from dotenv import load_dotenv
 load_dotenv()
 
-def binding(exchangeName, exchangeType):
+def binding(exchangeName, exchangeType, queue_routing):
     parameters = pika.URLParameters(os.getenv('MQ_URL'))
     connection = pika.BlockingConnection(parameters)
     assert connection.is_open
@@ -11,34 +11,24 @@ def binding(exchangeName, exchangeType):
         channel = connection.channel()
         assert channel.is_open
 
-        channel.exchange_declare(exchange=exchangeName, exchange_type=exchangeType)
-
-        #Binding 1
-        queueName = "alarms_all"
-        channel.queue_declare(queue=queueName)
-        channel.queue_bind(exchange=exchangeName,queue=queueName, routing_key="#")
-
-        #Binding 2
-        queueName = "alarms_calima"
-        channel.queue_declare(queue=queueName)
-        channel.queue_bind(exchange=exchangeName,queue=queueName, routing_key="CAL.#")
-
-        #Binding 3
-        queueName = "alarms_elec_yes"
-        channel.queue_declare(queue=queueName)
-        channel.queue_bind(exchange=exchangeName,queue=queueName, routing_key="*.elec.yes")
+        for d in queue_routing:
+            channel.exchange_declare(exchange=exchangeName, exchange_type=exchangeType)
+            channel.queue_declare(queue=d["queueName"])
+            channel.queue_bind(exchange=exchangeName, queue=d["queueName"], routing_key=d["routing_key"])
     finally:
         connection.close()
 
 def main():
+    exchangeName, exchangeType = "xch_alarms_topic", "topic"
+    queue_routing = [{"queueName":"alarms_all", "routing_key":"#"},
+                     {"queueName":"alarms_calima", "routing_key":"CAL.#"},
+                     {"queueName":"alarms_elec_yes", "routing_key":"*.elec.yes"}]
+
+    binding(exchangeName, exchangeType, queue_routing)
+
     parameters = pika.URLParameters(os.getenv('MQ_URL'))
     connection = pika.BlockingConnection(parameters)
     assert connection.is_open
-
-    exchangeName, exchangeType = "xch_alarms_topic", "topic"
-
-    binding(exchangeName, exchangeType)
-
     try:
         channel = connection.channel()
         assert channel.is_open
